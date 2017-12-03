@@ -6,7 +6,7 @@
 using namespace std;
 
 template <typename T>
-class LockFreeStack
+class LFStackGB
 {
 private:
 	struct Node
@@ -28,8 +28,8 @@ private:
 	void ChainPendingNodes(Node* first, Node* last);
 	void ChainPendingNode(Node* n);
 public:
-	LockFreeStack() = default;
-	~LockFreeStack();
+	LFStackGB() = default;
+	~LFStackGB();
 
 	void push(T const& data);
 	shared_ptr<T> pop();
@@ -37,7 +37,7 @@ public:
 };
 
 template <typename T>
-LockFreeStack<T>::~LockFreeStack()
+LFStackGB<T>::~LFStackGB()
 {
 	Node *node = head.load();
 	while(node)
@@ -49,7 +49,7 @@ LockFreeStack<T>::~LockFreeStack()
 }
 
 template <typename T>
-void LockFreeStack<T>::push(T const& data)
+void LFStackGB<T>::push(T const& data)
 {
 	Node *const newNode = new Node(data);
 	newNode->next = head.load();
@@ -58,7 +58,7 @@ void LockFreeStack<T>::push(T const& data)
 }
 
 template <typename T>
-shared_ptr<T> LockFreeStack<T>::pop()
+shared_ptr<T> LFStackGB<T>::pop()
 {
 	++threadsInPop;
 	Node* oldHead = head.load();
@@ -75,7 +75,7 @@ shared_ptr<T> LockFreeStack<T>::pop()
 }
 
 template <typename T>
-void LockFreeStack<T>::TryReclaim(Node *oldHead)
+void LFStackGB<T>::TryReclaim(Node *oldHead)
 {
 	if(threadsInPop == 1)
 	{
@@ -94,7 +94,7 @@ void LockFreeStack<T>::TryReclaim(Node *oldHead)
 }
 
 template <typename T>
-void LockFreeStack<T>::DeleteNodes(Node *nodes)
+void LFStackGB<T>::DeleteNodes(Node *nodes)
 {
 	while(nodes)
 	{
@@ -105,7 +105,7 @@ void LockFreeStack<T>::DeleteNodes(Node *nodes)
 }
 
 template <typename T>
-void LockFreeStack<T>::ChainPendingNodes(Node* first, Node* last)
+void LFStackGB<T>::ChainPendingNodes(Node* first, Node* last)
 {
 	last->next = toBeDeleted;
 	while(!toBeDeleted.compare_exchange_weak(last->next,
@@ -114,7 +114,7 @@ void LockFreeStack<T>::ChainPendingNodes(Node* first, Node* last)
 }
 
 template <typename T>
-void LockFreeStack<T>::ChainPendingNodes(Node* nodes)
+void LFStackGB<T>::ChainPendingNodes(Node* nodes)
 {
 	Node* last = nodes;
 	while(Node *const next = last->next)
@@ -123,13 +123,13 @@ void LockFreeStack<T>::ChainPendingNodes(Node* nodes)
 }
 
 template <typename T>
-void LockFreeStack<T>::ChainPendingNode(Node* n)
+void LFStackGB<T>::ChainPendingNode(Node* n)
 {
 	ChainPendingNodes(n, n);
 }
 
 template <typename T>
-void LockFreeStack<T>::show()
+void LFStackGB<T>::show()
 {
 	Node* n = head.load();
 	while(n)
@@ -143,7 +143,7 @@ int main()
 {
 	//TODO: add multithreding
 
-	LockFreeStack<int> lfstak;
+	LFStackGB<int> lfstak;
 
 	lfstak.push(5);
 	lfstak.push(8);
