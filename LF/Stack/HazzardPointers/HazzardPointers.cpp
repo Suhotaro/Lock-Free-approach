@@ -40,16 +40,25 @@ private:
 		HPOwner operator=(HPOwner const&) = delete;
 		~HPOwner();
 
-		atomic<void*>& getPointer() { return hp->pointer; }
+		atomic<void*>& GetPointer() { return hp->pointer; }
 	};
 
-	atomic<void*>& getHazardPointerForCurrentThread();
+	atomic<void*>& GetHazardPointerForCurrentThread();
+	bool HasHazardPointerFor(void*p);
 
-	void DeleteNodes(Node *nodes);
-	void TryReclaim(Node *oldHead);
-	void ChainPendingNodes(Node* nodes);
-	void ChainPendingNodes(Node* first, Node* last);
-	void ChainPendingNode(Node* n);
+	template <typename T>
+	void DoDelete(void* p);
+
+	struct DataToReclaim {
+		void *data;
+		function<void(void*)> deleter;
+		DataToReclaim *next;
+
+		template <typename T>
+		DataToReclaim(T* p);
+
+		~DataToReclaim();
+	};
 public:
 	LFStackHP() = default;
 	~LFStackHP();
@@ -92,10 +101,19 @@ LFStackHP<T>::~LFStackHP()
 }
 
 template <typename T>
-atomic<void*>&  LFStackHP<T>::getHazardPointerForCurrentThread()
+atomic<void*>&  LFStackHP<T>::GetHazardPointerForCurrentThread()
 {
 	thread_local static hpOwner hazard;
 	return hazard.getPointer();
+}
+
+template <typename T>
+bool LFStackHP<T>::HasHazardPointerFor(void* p)
+{
+	for (unsigned i = 0; i < MAX_HAZARD_POINTERS; i++)
+		if (hazardPointers[i].pointer.load() == p)
+			return true;
+	return false;
 }
 
 template <typename T>
@@ -107,80 +125,68 @@ void LFStackHP<T>::push(T const& data)
 		;
 }
 
-
-
-
-
 template <typename T>
 shared_ptr<T> LFStackHP<T>::pop()
 {
-	++threadsInPop;
+	atomic<void*>& hp = GetHazardPointerForCurrentThread();
 	Node* oldHead = head.load();
-	while (oldHead &&
-		!head.compare_exchange_weak(oldHead,
-			oldHead->next))
+
+	do {
+		Node* temp;
+		do {
+			tmp = oldHead;
+			hp.store(oldHead);
+			oldHead = head.load();
+		} while (oldHead != temp)
+			;
+	} while (oldHead && !head.compare_exchange_strong(oldHead, oldHead->next))
 		;
 
+	hp.store(nullptr);
 	shared_ptr<T> res;
-	if (oldHead)
+	if (oldHead) {
 		res.swap(oldHead->data);
-	TryReclaim(oldHead);
+		if (HasHazardPointerFor(oldHead))
+			ReclaimLater(oldHead);
+		else
+			delete oldHead;
+		DeleteNodesWithNotHazards();
+	}
 	return res;
 }
 
 template <typename T>
-void LFStackHP<T>::TryReclaim(Node *oldHead)
-{
-	if (threadsInPop == 1)
-	{
-		Node *nodesToDelete = toBeDeleted.exchange(nullptr);
-		if (!--threadsInPop)
-			DeleteNodes(nodesToDelete);
-		else if (nodesToDelete)
-			ChainPendingNodes(nodesToDelete);
-		delete oldHead;
-	}
-	else
-	{
-		ChainPendingNode(oldHead);
-		--threadsInPop;
-	}
+void LFStackHP<T>::DoDelete(void* p) {
+	delete static_cast<T*>(p);
 }
 
 template <typename T>
-void LFStackHP<T>::DeleteNodes(Node *nodes)
-{
-	while (nodes)
-	{
-		Node *next = nodes->next;
-		delete nodes;
-		nodes = next;
-	}
-}
+LFStackHP<T>::DataToReclaim::DataToReclaim(void* p)
+: data(p)
+, deleter(&DoDelete<T>)
+, next(nullptr)
+{}
 
 template <typename T>
-void LFStackHP<T>::ChainPendingNodes(Node* first, Node* last)
-{
-	last->next = toBeDeleted;
-	while (!toBeDeleted.compare_exchange_weak(last->next,
-		first))
-		;
+LFStackHP<T>::DataToReclaim::~DataToReclaim() {
+	deleter(data);
 }
 
-template <typename T>
-void LFStackHP<T>::ChainPendingNodes(Node* nodes)
-{
-	Node* last = nodes;
-	while (Node *const next = last->next)
-		last = next;
-	ChainPendingNodes(nodes, last);
-}
 
-template <typename T>
-void LFStackHP<T>::ChainPendingNode(Node* n)
-{
-	ChainPendingNodes(n, n);
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 template <typename T>
 void LFStackHP<T>::show()
