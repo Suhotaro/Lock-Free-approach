@@ -3,3 +3,4 @@
 3. Cmake or one solution
 4. Message based approach example ATM State Machine
 5. Make the project as library 
+6. ! Fix runtime error in LF ReferenceCount exampl. Suppose show is incorrectly implemented
