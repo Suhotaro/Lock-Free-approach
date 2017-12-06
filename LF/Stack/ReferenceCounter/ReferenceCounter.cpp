@@ -15,7 +15,7 @@ private:
 
 	struct CountedNodePtr {
 		int externalCount;
-		Node* ptr;
+		Node* ptr = nullptr;
 	};
 
 	struct Node {
@@ -23,8 +23,7 @@ private:
 		atomic<int> internalCount;
 		CountedNodePtr next;
 
-		Node(T const& data_) : data(make_shared<T>(data_)), internalCount(0)
-		{}
+		Node(T const& data_) : data(make_shared<T>(data_)), internalCount(0) {}
 	};
 
 	atomic<CountedNodePtr> head;
