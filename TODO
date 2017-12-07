@@ -4,3 +4,5 @@
 4. Message based approach example ATM State Machine
 5. Make the project as library 
 6. Cover all up in a namespace
+7. fix Hazard check itself
+8. fix nulling in destructors
