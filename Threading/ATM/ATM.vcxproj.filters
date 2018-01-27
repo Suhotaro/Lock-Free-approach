@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{97c4384b-8f29-420f-bd42-cad41d658ba2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="template_dispatcher.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="dispatcher.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="receiver.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="sender.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="messages.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="atm.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="bank_machine.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="interface_machine.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
