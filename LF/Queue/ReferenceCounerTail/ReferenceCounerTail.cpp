@@ -39,6 +39,8 @@ private:
 
 			next.ptr = nullptr;
 			next.externalCount = 0;
+
+			data.store(nullptr);
 		}
 
 		void ReleaseRef()
@@ -59,12 +61,40 @@ private:
 	static void IncreaseExternalCounter(atomic<CountedNodePtr>& counter, CountedNodePtr& old_counter);
 	static void FreeExternalCounter(CountedNodePtr& oldNodePtr);
 public:
+	LFQueueRCTail();
+	~LFQueueRCTail();
+
 	void push(T newValue);
 	unique_ptr<T> pop();
 };
 
 template <typename T>
-void LFQueueRCTail<T>::IncreaseExternalCounter(atomic<CountedNodePtr>& counter, CountedNodePtr& old_counter)
+LFQueueRCTail<T>::LFQueueRCTail()
+{
+	CountedNodePtr dummy;
+	dummy.externalCount = 1;
+	dummy.ptr = new Node;
+	
+	head.store(dummy);
+	tail.store(head.load());
+}
+
+template <typename T>
+LFQueueRCTail<T>::~LFQueueRCTail()
+{
+	CountedNodePtr current = head.load();
+	while (current.ptr) {
+		T* data = current.ptr->data.load();
+		if (data)
+			delete data;
+
+		current = current.ptr->next;
+	}
+}
+
+template <typename T>
+void LFQueueRCTail<T>::IncreaseExternalCounter(
+	atomic<CountedNodePtr>& counter, CountedNodePtr& old_counter)
 {
 	CountedNodePtr new_counter;
 	do
@@ -140,5 +170,10 @@ std::unique_ptr<T> LFQueueRCTail<T>::pop()
 
 int main()
 {
+	LFQueueRCTail<int> v;
+
+	v.push(10);
+	auto tmp = v.pop();
+
 	return 0;
 }
